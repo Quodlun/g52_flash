@@ -1,14 +1,12 @@
-byte ledPins [] = { A0, A1, A2, A3, A4, A5 }; // A6, A7
-byte segPins [] = { 13, 12, 11, 10, 9, 8, 7 };
-byte btnPins [] = { 5, 4, 3, 2 };
-byte brightnessList [] = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1023 };
-byte delayTimeList [] = { 50, 100, 150, 200, 250, 300 };
+byte ledPins [] = { 3, 5, 6, 9, 10, 11 };
+byte segPins [] = { 14, 15, 16, 17, 18, 19, 13 };
+byte btnPins [] = { 2, 4, 7, 8, 12};
+int brightnessList [] = { 0, 63, 127, 255 };
+int delayTimeList [] = { 0, 50, 75, 100 };
 
-int flashBtnPin = 6;
-int startTime;
-
-int brightnessStage = 9;
-int delayTimeStage = 3;
+long long int startTime;
+int brightnessStage = 3;
+int delayTimeStage = 1;
 
 byte segDigits [ 10 ] [ 7 ] = 
 {
@@ -28,22 +26,22 @@ void setup ()
 {
   Serial.begin ( 9600 );
 
-  pinMode ( flashBtnPin, INPUT );
-
   for ( int i = 0; i < 6; i ++ )
   {
     pinMode ( ledPins [ i ], OUTPUT );
+    analogWrite ( ledPins [ i ], 0 );
   }
 
   for ( int i = 0; i < 7; i ++ )
   {
     pinMode ( segPins [ i ], OUTPUT );
+    digitalWrite ( segPins [ i ], LOW );
   }
 
-  for ( int i = 0; i < 4; i ++ )
+  for ( int i = 0; i < 5; i ++ )
   {
-    pinMode ( btnPins [ i ], INPUT );
-    digitalWrite ( btnPins [ i ], LOW );
+    pinMode ( btnPins [ i ], INPUT);
+    digitalWrite ( btnPins [ i ], LOW);
   }
 
   startTime = -7000;
@@ -51,97 +49,86 @@ void setup ()
 
 void loop ()
 {
-  if ( digitalRead ( flashBtnPin ) == HIGH )
-  {
-    flash ();
-  }
-  
-  for ( int i = 0; i < 4; i ++ )
+  for ( int i = 0; i < 5; i ++ )
   {
     if ( digitalRead ( btnPins [ i ] ) == HIGH )
     {
       delay ( 20 );
 
-      switch ( btnPins [ i ] )
+      switch ( i + 1 )
       {
-        case 5:
-          brightnessStage = 9;
-          delayTimeStage = 3;
+        case 1:
+          reset ();
 
-          Serial.println ( "Reset..." );
-          Serial.println ( brightnessStage );
-          Serial.println ( delayTimeStage );
+          segPrint ( delayTimeStage );
+          delay ( 500 );
+          segPrint ( brightnessStage );            
+
+          break;
+          
+        case 2:
+          delayTimeStage += 1;
+
+          if ( delayTimeStage > 3 )
+          
+            delayTimeStage = 0;
+          }
+
+          segPrint ( delayTimeStage );
+          Serial.print ( delayTimeStage );
+          Serial.print ( "  " );
+          Serial.println ( delayTimeList [ delayTimeStage ] );
+
+          break;
+
+        case 3:
+          brightnessStage += 1;
+
+          if ( brightnessStage > 3 )
+          {
+            brightnessStage = 3;
+          }
+
+          segPrint ( brightnessStage );
+
+          Serial.print ( brightnessStage );
+          Serial.print ( "  " );
+          Serial.println ( brightnessList [ brightnessStage ] );
 
           break;
 
         case 4:
-          delayTimeStage += 1;
-
-          if ( delayTimeStage > 5 )
-          {
-            delayTimeStage = 0;
-            segDisplay ( delayTimeStage );
-            Serial.println ( delayTimeStage );
-          }
-
-          else
-          {
-            segDisplay ( delayTimeStage );
-            Serial.println ( delayTimeStage );
-          }
-
-          break;
-          
-        case 3:
-          brightnessStage += 1;
-
-          if ( brightnessStage > 9)
-          {
-            brightnessStage = 9;
-            segDisplay ( brightnessStage );
-            Serial.println ( brightnessStage );
-          }
-
-          else
-          {
-            segDisplay ( brightnessStage );
-            Serial.println ( brightnessStage );
-          }
-
-          break;
-
-        case 2:
           brightnessStage -= 1;
 
           if ( brightnessStage < 0 )
           {
             brightnessStage = 0;
-            segDisplay ( brightnessStage );
-            Serial.println ( brightnessStage );
           }
 
-          else
-          {
-            segDisplay ( brightnessStage );
-            Serial.println ( brightnessStage );
-          }
+          segPrint ( brightnessStage );
+
+          Serial.print ( brightnessStage );
+          Serial.print ( "  " );
+          Serial.println ( brightnessList [ brightnessStage ] );
 
           break;
+          
+        case 5:
+          flash ();
 
+          break;
+          
         default:
-          Serial.println ( btnPins [ i ] + 1 );
-
           break;
       }
-    }
-  }
-}
 
-void segDisplay ( int displayNum )
-{
-  for ( int i = 0; i < 7; i ++ )
-  {
-    digitalWrite ( segPins [ i ], segDigits [ displayNum ] [ i ] );
+      while ( digitalRead ( btnPins [ i ] ) == HIGH )
+      {
+        delay ( 1 );
+      }
+
+      delay ( 20 );
+    }
   }
 }
 
@@ -153,7 +140,7 @@ void flash ()
     {
       analogWrite ( ledPins [ i ], brightnessList [ brightnessStage ] );
     }
-
+    
     startTime = millis ();
     delay ( delayTimeList [ delayTimeStage ] );
 
@@ -162,4 +149,23 @@ void flash ()
       analogWrite ( ledPins [ i ], 0 );
     }
   }
+}
+
+void segPrint ( int segNum )
+{
+  for ( int i = 0; i < 7; i ++ )
+  {
+    digitalWrite ( segPins [ i ], segDigits [ segNum ] [ i ] );
+  }
+}
+
+void reset ()
+{
+  brightnessStage = 3;
+  delayTimeStage = 1;
+
+  Serial.println ( "Reset... " );
+  Serial.print ( brightnessList [ brightnessStage ] );
+  Serial.print ( "  " );
+  Serial.println ( delayTimeList [ delayTimeStage ] );
 }
